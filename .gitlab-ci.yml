@@ -1,0 +1,49 @@
+stages:
+  - test
+  - report
+  - deploy
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+  ALLURE_RESULTS: "target/allure-results"
+
+cache:
+  paths:
+    - .m2/repository/
+    - target/
+
+test:
+  stage: test
+  image: maven:3.8.6-openjdk-17
+  script:
+    - mvn clean test
+  artifacts:
+    when: always
+    paths:
+      - target/allure-results/
+    expire_in: 1 week
+
+allure-report:
+  stage: report
+  image: maven:3.8.6-openjdk-17
+  needs: ["test"]
+  script:
+    - mvn allure:report
+  artifacts:
+    when: always
+    paths:
+      - target/site/allure-maven-plugin/
+    expire_in: 1 week
+
+pages:
+  stage: deploy
+  image: alpine:latest
+  needs: ["allure-report"]
+  script:
+    - mkdir -p public
+    - cp -r target/site/allure-maven-plugin/* public/
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
