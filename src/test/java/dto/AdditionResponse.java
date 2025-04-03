@@ -5,10 +5,8 @@ public class AdditionResponse {
     private int additional_number;
     private int id;
 
-    // Constructors, getters, setters
     public AdditionResponse() {}
 
-    // Getters and setters
     public String getAdditional_info() {
         return additional_info;
     }

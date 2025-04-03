@@ -19,10 +19,8 @@ public class EntityResponse {
     @JsonProperty("verified")
     private boolean verified;
 
-    // Constructors, getters, setters
     public EntityResponse() {}
 
-    // Getters and setters
     public AdditionResponse getAddition() {
         return addition;
     }

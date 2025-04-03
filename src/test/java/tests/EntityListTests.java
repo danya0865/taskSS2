@@ -19,7 +19,7 @@ import static org.hamcrest.Matchers.*;
 @Feature("Entity Management")
 public class EntityListTests extends BaseTest {
 
-    @Test
+    @Test(description = "Запрос на получение списка сущностей")
     @Story("Get all entities")
     public void testGetAllEntities() {
         Response response = given()

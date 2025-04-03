@@ -8,7 +8,6 @@ public class EntityRequest {
     private String title;
     private boolean verified;
 
-    // Constructors, getters, setters
     public EntityRequest() {}
 
     public EntityRequest(AdditionRequest addition, List<Integer> important_numbers, String title, boolean verified) {
@@ -18,7 +17,6 @@ public class EntityRequest {
         this.verified = verified;
     }
 
-    // Getters and setters
     public AdditionRequest getAddition() {
         return addition;
     }
