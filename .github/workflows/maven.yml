@@ -2,9 +2,9 @@ name: Тестирование API
 
 on:
   push:
-    branches: [ '**' ]
+    branches: [ 'main' ]
   pull_request:
-    branches: [ '**' ]
+    branches: [ 'main' ]
 
 jobs:
   test:
@@ -12,16 +12,6 @@ jobs:
     name: Запуск тестов API
 
     steps:
-      - name: Получить исходный код
-        uses: actions/checkout@v4
-
-      - name: Установка Java
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
       - name: Установка Docker
         run: |
           sudo apt-get update
@@ -35,13 +25,23 @@ jobs:
             sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
           sudo apt-get update
           sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+      - name: Установка Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Получение исходного кода
+        uses: actions/checkout@v4
+
       - name: Запуск тестового API
         run: |
           git clone https://github.com/bondarenkokate73/simbirsoft_sdet_project.git external_api
           cd external_api
           sudo docker compose up --build -d
           
-          # Проверка готовности API (30 попыток с интервалом 5 секунд)
           for i in {1..30}; do
             if curl -s http://localhost:8080/api/getAll | grep -q '\[\]'; then
               echo "API готово к работе!"
@@ -50,17 +50,21 @@ jobs:
             echo "Ожидание запуска API... ($i/30)"
             sleep 5
           done
+
       - name: Проверка статуса API
         run: |
           curl -f http://localhost:8080/api/getAll || (echo "Ошибка: API не запустилось"; exit 1)
-      - name: Запустить тесты
+
+      - name: Запуск тестов
         run: |
           mvn clean test
+
       - name: Сгенерировать Allure отчет
         if: always()
         run: |
           mvn allure:report
-      - name: Сохранить результаты тестов
+
+      - name: Сохранение результатов тестов
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -68,7 +72,7 @@ jobs:
           path: target/allure-results
           retention-days: 1
 
-      - name: Сохранить готовый отчет
+      - name: Сохранение готового отчета
         if: always()
         uses: actions/upload-artifact@v4
         with:
