@@ -11,20 +11,6 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      app:
-        image: simbirsoft_sdet_project-app
-        ports:
-          - "8080:8080"
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/simbirsoft
-          SPRING_DATASOURCE_USERNAME: postgres
-          SPRING_DATASOURCE_PASSWORD: postgres
-        options: >-
-          --health-cmd "curl -f http://localhost:8080/actuator/health || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
       db:
         image: postgres:13
         ports:
@@ -49,10 +35,14 @@ jobs:
           distribution: 'corretto'
           cache: 'maven'
 
-      - name: Build and start services
+      - name: Build Docker containers
         run: |
-          docker-compose up --build -d
-          sleep 30
+          docker-compose build
+
+      - name: Start services
+        run: |
+          docker-compose up -d
+          sleep 15
           curl --retry 5 --retry-delay 5 --retry-connrefused http://localhost:8080/actuator/health
 
       - name: Run tests
@@ -65,7 +55,7 @@ jobs:
 
       - name: Upload Allure Report
         if: always()
-        uses: actions/upload-artifact@v4  # Используем версию v4 вместо v3
+        uses: actions/upload-artifact@v4
         with:
           name: allure-report
           path: target/site/allure-maven-plugin
