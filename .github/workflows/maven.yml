@@ -12,6 +12,9 @@ jobs:
     name: Запуск тестов API
 
     steps:
+      - name: Получение исходного кода
+        uses: actions/checkout@v4
+
       - name: Установка Docker
         run: |
           sudo apt-get update
@@ -32,9 +35,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
-
-      - name: Получение исходного кода
-        uses: actions/checkout@v4
 
       - name: Запуск тестового API
         run: |
