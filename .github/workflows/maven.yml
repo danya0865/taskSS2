@@ -43,12 +43,23 @@ jobs:
           sudo curl -L "https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
 
-      - name: Build and start containers
+      - name: Verify docker-compose file
         run: |
-          docker-compose build
-          docker-compose up -d
-          sleep 15
-          curl --retry 5 --retry-delay 5 --retry-connrefused http://localhost:8080/actuator/health || echo "Service check failed but continuing..."
+          ls -la
+          if [ -f "docker-compose.yml" ]; then
+            echo "docker-compose.yml found"
+            cat docker-compose.yml
+          else
+            echo "Error: docker-compose.yml not found!"
+            exit 1
+          fi
+
+      - name: Build and start application
+        run: |
+          docker-compose -f docker-compose.yml build
+          docker-compose -f docker-compose.yml up -d
+          sleep 20
+          curl --retry 5 --retry-delay 5 --retry-connrefused http://localhost:8080/actuator/health || echo "Health check failed but continuing..."
 
       - name: Verify containers
         run: docker ps -a
@@ -70,4 +81,4 @@ jobs:
 
       - name: Stop containers
         if: always()
-        run: docker-compose down
+        run: docker-compose -f docker-compose.yml down
