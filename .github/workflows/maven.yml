@@ -1,4 +1,4 @@
-name: Java CI with Maven, Testcontainers and Allure
+name: Java CI with Maven and Allure
 
 on:
   push:
@@ -7,46 +7,38 @@ on:
     branches: [ "main", "master" ]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+
     services:
-      docker:
-        image: docker:dind
-        options: --privileged
+      api-server:
+        image: simbirsoft_sdet_project-service:latest
+        ports:
+          - 8080:8080
+        options: >-
+          --health-cmd "curl -f http://localhost:8080/api/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          -e SPRING_PROFILES_ACTIVE=test
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build Docker image
-        run: |
-          docker build -t simbirsoft-api .
+      - name: Build with Maven
+        run: mvn -B clean package
 
-      - name: Start Testcontainers
-        run: |
-          docker run -d -p 8080:8080 --name api-server simbirsoft-api
-          echo "Waiting for API to start..."
-          while ! curl -s http://localhost:8080/health >/dev/null; do
-            sleep 5
-          done
-
-      - name: Build and test with Maven
-        run: mvn -B clean test
+      - name: Run tests
+        run: mvn -B test
         env:
-          TESTCONTAINERS_RYUK_DISABLED: true
-          DOCKER_HOST: tcp://localhost:2375
-
-      - name: Stop containers
-        if: always()
-        run: |
-          docker stop api-server || true
-          docker rm api-server || true
+          API_BASE_URL: http://localhost:8080/api
 
       - name: Generate Allure Report
         if: always()
@@ -57,7 +49,7 @@ jobs:
 
       - name: Upload Allure Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: allure-report
           path: allure-report
