@@ -1,4 +1,4 @@
-name: API Tests for External Project
+name: Тестирование API
 
 on:
   push:
@@ -9,19 +9,20 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    name: Запуск тестов API
 
     steps:
-      - name: Checkout code
+      - name: Получить исходный код
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
+      - name: Установка Java
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Install Docker
+      - name: Установка Docker
         run: |
           sudo apt-get update
           sudo apt-get install -y ca-certificates curl gnupg
@@ -35,36 +36,36 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-      - name: Launch external API
+      - name: Запуск тестового API
         run: |
           git clone https://github.com/bondarenkokate73/simbirsoft_sdet_project.git external_api
           cd external_api
           sudo docker compose up --build -d
           
-          # Improved API readiness check
+          # Проверка готовности API (30 попыток с интервалом 5 секунд)
           for i in {1..30}; do
             if curl -s http://localhost:8080/api/getAll | grep -q '\[\]'; then
-              echo "API is ready!"
+              echo "API готово к работе!"
               break
             fi
-            echo "Waiting for API to start... ($i/30)"
+            echo "Ожидание запуска API... ($i/30)"
             sleep 5
           done
 
-      - name: Verify API status
+      - name: Проверка статуса API
         run: |
-          curl -f http://localhost:8080/api/getAll || (echo "API failed to start"; exit 1)
+          curl -f http://localhost:8080/api/getAll || (echo "Ошибка: API не запустилось"; exit 1)
 
-      - name: Run tests with Allure
+      - name: Запустить тесты
         run: |
           mvn clean test
 
-      - name: Generate Allure report
+      - name: Сгенерировать Allure отчет
         if: always()
         run: |
           mvn allure:report
 
-      - name: Archive Allure results
+      - name: Сохранить результаты тестов
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -72,7 +73,7 @@ jobs:
           path: target/allure-results
           retention-days: 1
 
-      - name: Archive Allure report
+      - name: Сохранить готовый отчет
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -80,7 +81,7 @@ jobs:
           path: target/site/allure-maven-plugin
           retention-days: 1
 
-      - name: Clean up
+      - name: Очистка окружения
         if: always()
         run: |
           cd external_api && sudo docker compose down -v || true
