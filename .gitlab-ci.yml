@@ -13,7 +13,7 @@ cache:
 
 test:
   stage: test
-  image: maven:3.8.6-amazoncorretto-17  # Специальный образ с Maven + Corretto
+  image: maven:3.9.6-amazoncorretto-17
   script:
     - mvn --version
     - mvn clean test
@@ -25,7 +25,7 @@ test:
 
 generate-report:
   stage: report
-  image: maven:3.8.6-amazoncorretto-17
+  image: maven:3.9.6-amazoncorretto-17
   needs: ["test"]
   script:
     - mvn allure:report
