@@ -1,34 +1,39 @@
-name: Java CI with Maven
+name: Java CI with Maven and Allure
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "master" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "master" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build with Maven
-        run: mvn -B clean package
+      - name: Build and test with Maven
+        run: mvn -B clean test
 
-      - name: Run tests with Maven
-        run: mvn -B test
+      - name: Generate Allure Report
+        if: always()
+        run: |
+          mvn allure:report
+          mkdir -p allure-report
+          cp -R target/site/allure-maven-plugin/* allure-report/
 
       - name: Upload Allure Report
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: allure-report
-          path: target/allure-results
+          path: allure-report
+          retention-days: 5
