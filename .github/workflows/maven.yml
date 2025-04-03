@@ -9,6 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -23,29 +24,18 @@ jobs:
 
       - name: Install Docker
         run: |
-          # Удаляем возможные конфликтующие пакеты
           sudo apt-get remove -y docker docker-engine docker.io containerd runc || true
-          
-          # Устанавливаем зависимости
           sudo apt-get update
           sudo apt-get install -y ca-certificates curl gnupg
-          
-          # Добавляем официальный GPG ключ Docker
           sudo install -m 0755 -d /etc/apt/keyrings
           curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
           sudo chmod a+r /etc/apt/keyrings/docker.gpg
-          
-          # Добавляем репозиторий Docker
           echo \
             "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
             $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
             sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-          
-          # Устанавливаем Docker
           sudo apt-get update
           sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-          
-          # Проверяем установку
           sudo docker --version
           sudo docker compose version
 
@@ -55,7 +45,6 @@ jobs:
           cd external_api
           sudo docker compose up --build -d
           
-          # Улучшенная проверка готовности API
           for i in {1..30}; do
             if curl -s http://localhost:8080/api/getAll >/dev/null; then
               echo "API is ready!"
@@ -69,9 +58,15 @@ jobs:
         run: |
           curl -f http://localhost:8080/api/getAll || (echo "API failed to start"; exit 1)
 
-      - name: Run tests with Allure
+      - name: Run tests and prepare Allure results
         run: |
           mvn -B clean test
+          mkdir -p allure-results
+          [ -d target/allure-results ] && cp -r target/allure-results/* allure-results/
+
+      - name: Generate Allure report
+        if: always()
+        run: |
           mvn allure:report
 
       - name: Upload Allure report
@@ -79,7 +74,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: allure-report
-          path: target/site/allure-maven-plugin
+          path: |
+            target/site/allure-maven-plugin
+            allure-results/
           retention-days: 3
 
       - name: Clean up
