@@ -41,13 +41,14 @@ jobs:
           git clone https://github.com/bondarenkokate73/simbirsoft_sdet_project.git external_api
           cd external_api
           sudo docker compose up --build -d
-          
+
+          # Ждём непустой ответ от API
           for i in {1..30}; do
-            if curl -s http://localhost:8080/api/getAll | grep -q '\[\]'; then
-              echo "API готово к работе!"
+            if curl -s http://localhost:8080/api/getAll | grep -q -v '\[\]'; then
+              echo "API вернул данные!"
               break
             fi
-            echo "Ожидание запуска API... ($i/30)"
+            echo "Ожидание данных... ($i/30)"
             sleep 5
           done
 
