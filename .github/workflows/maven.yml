@@ -2,29 +2,26 @@ name: API Tests for External Project
 
 on:
   push:
-    branches: [ 'main' ]
+    branches: [ '**' ]
   pull_request:
-    branches: [ 'main' ]
+    branches: [ '**' ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'corretto'
-          cache: 'maven'
 
       - name: Install Docker
         run: |
-          sudo apt-get remove -y docker docker-engine docker.io containerd runc || true
           sudo apt-get update
           sudo apt-get install -y ca-certificates curl gnupg
           sudo install -m 0755 -d /etc/apt/keyrings
@@ -36,8 +33,6 @@ jobs:
             sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
           sudo apt-get update
           sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-          sudo docker --version
-          sudo docker compose version
 
       - name: Launch external API
         run: |
@@ -45,8 +40,9 @@ jobs:
           cd external_api
           sudo docker compose up --build -d
           
+          # Улучшенная проверка готовности API
           for i in {1..30}; do
-            if curl -s http://localhost:8080/api/getAll >/dev/null; then
+            if curl -s http://localhost:8080/api/getall >/dev/null; then
               echo "API is ready!"
               break
             fi
@@ -56,28 +52,28 @@ jobs:
 
       - name: Verify API status
         run: |
-          curl -f http://localhost:8080/api/getAll || (echo "API failed to start"; exit 1)
+          curl -f http://localhost:8080/api/getall || (echo "API failed to start"; exit 1)
 
-      - name: Run tests and prepare Allure results
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2-
+
+      - name: Run tests with Allure
         run: |
-          mvn -B clean test
+          mvn clean test
           mkdir -p allure-results
           [ -d target/allure-results ] && cp -r target/allure-results/* allure-results/
-
-      - name: Generate Allure report
-        if: always()
-        run: |
-          mvn allure:report
 
       - name: Upload Allure report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-report
-          path: |
-            target/site/allure-maven-plugin
-            allure-results/
-          retention-days: 3
+          name: allure-report-${{ github.ref_name }}
+          path: allure-results/
+          retention-days: 1
 
       - name: Clean up
         if: always()
