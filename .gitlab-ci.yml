@@ -13,9 +13,7 @@ cache:
 
 test:
   stage: test
-  image: amazoncorretto:17
-  before_script:
-    - apt-get update && apt-get install -y maven
+  image: maven:3.8.6-amazoncorretto-17  # Специальный образ с Maven + Corretto
   script:
     - mvn --version
     - mvn clean test
@@ -27,10 +25,8 @@ test:
 
 generate-report:
   stage: report
-  image: amazoncorretto:17
+  image: maven:3.8.6-amazoncorretto-17
   needs: ["test"]
-  before_script:
-    - apt-get update && apt-get install -y maven
   script:
     - mvn allure:report
   artifacts:
