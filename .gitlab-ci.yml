@@ -4,6 +4,7 @@ stages:
 
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+  ALLURE_VERSION: "2.24.0"
   ALLURE_RESULTS: "target/allure-results"
 
 cache:
@@ -15,22 +16,25 @@ test:
   stage: test
   image: maven:3.9.6-amazoncorretto-17
   script:
-    - mvn --version
-    - mvn clean test
+    - mvn clean test -B
   artifacts:
     when: always
     paths:
-      - target/allure-results/
+      - ${ALLURE_RESULTS}/
     expire_in: 1 week
 
 generate-report:
   stage: report
-  image: maven:3.9.6-amazoncorretto-17
+  image: openjdk:17-jdk-slim
   needs: ["test"]
+  before_script:
+    - apt-get update && apt-get install -y wget unzip
+    - wget https://github.com/allure-framework/allure2/releases/download/${ALLURE_VERSION}/allure-${ALLURE_VERSION}.zip
+    - unzip allure-${ALLURE_VERSION}.zip -d /opt/allure
+    - export PATH=$PATH:/opt/allure/allure-${ALLURE_VERSION}/bin
   script:
-    - mvn allure:report
+    - allure generate ${ALLURE_RESULTS} -o target/site/allure-report --clean
   artifacts:
-    when: always
     paths:
-      - target/site/allure-maven-plugin/
+      - target/site/allure-report/
     expose_as: "Allure Report"
