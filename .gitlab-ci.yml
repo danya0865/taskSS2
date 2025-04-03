@@ -1,7 +1,6 @@
 stages:
   - test
   - report
-  - deploy
 
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
@@ -14,8 +13,11 @@ cache:
 
 test:
   stage: test
-  image: maven:3.8.6-openjdk-17
+  image: amazoncorretto:17
+  before_script:
+    - apt-get update && apt-get install -y maven
   script:
+    - mvn --version
     - mvn clean test
   artifacts:
     when: always
@@ -23,27 +25,16 @@ test:
       - target/allure-results/
     expire_in: 1 week
 
-allure-report:
+generate-report:
   stage: report
-  image: maven:3.8.6-openjdk-17
+  image: amazoncorretto:17
   needs: ["test"]
+  before_script:
+    - apt-get update && apt-get install -y maven
   script:
     - mvn allure:report
   artifacts:
     when: always
     paths:
       - target/site/allure-maven-plugin/
-    expire_in: 1 week
-
-pages:
-  stage: deploy
-  image: alpine:latest
-  needs: ["allure-report"]
-  script:
-    - mkdir -p public
-    - cp -r target/site/allure-maven-plugin/* public/
-  artifacts:
-    paths:
-      - public
-  only:
-    - main
+    expose_as: "Allure Report"
