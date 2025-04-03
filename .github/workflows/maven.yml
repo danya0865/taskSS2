@@ -46,18 +46,18 @@ jobs:
       - name: Verify docker-compose file
         run: |
           ls -la
-          if [ -f "docker-compose.yml" ]; then
-            echo "docker-compose.yml found"
-            cat docker-compose.yml
+          if [ -f "docker-compose.yaml" ]; then
+            echo "docker-compose.yaml found"
+            cat docker-compose.yaml
           else
-            echo "Error: docker-compose.yml not found!"
+            echo "Error: docker-compose.yaml not found!"
             exit 1
           fi
 
       - name: Build and start application
         run: |
-          docker-compose -f docker-compose.yml build
-          docker-compose -f docker-compose.yml up -d
+          docker-compose -f docker-compose.yaml build
+          docker-compose -f docker-compose.yaml up -d
           sleep 20
           curl --retry 5 --retry-delay 5 --retry-connrefused http://localhost:8080/actuator/health || echo "Health check failed but continuing..."
 
@@ -81,4 +81,4 @@ jobs:
 
       - name: Stop containers
         if: always()
-        run: docker-compose -f docker-compose.yml down
+        run: docker-compose -f docker-compose.yaml down
