@@ -19,6 +19,7 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'maven'
 
       - name: Install Docker
         run: |
@@ -40,9 +41,9 @@ jobs:
           cd external_api
           sudo docker compose up --build -d
           
-          # Улучшенная проверка готовности API
+          # Improved API readiness check
           for i in {1..30}; do
-            if curl -s http://localhost:8080/api/getall >/dev/null; then
+            if curl -s http://localhost:8080/api/getAll | grep -q '\[\]'; then
               echo "API is ready!"
               break
             fi
@@ -52,27 +53,31 @@ jobs:
 
       - name: Verify API status
         run: |
-          curl -f http://localhost:8080/api/getall || (echo "API failed to start"; exit 1)
-
-      - name: Cache Maven packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2-
+          curl -f http://localhost:8080/api/getAll || (echo "API failed to start"; exit 1)
 
       - name: Run tests with Allure
         run: |
           mvn clean test
-          mkdir -p allure-results
-          [ -d target/allure-results ] && cp -r target/allure-results/* allure-results/
 
-      - name: Upload Allure report
+      - name: Generate Allure report
+        if: always()
+        run: |
+          mvn allure:report
+
+      - name: Archive Allure results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-report-${{ github.ref_name }}
-          path: allure-results/
+          name: allure-results
+          path: target/allure-results
+          retention-days: 1
+
+      - name: Archive Allure report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: target/site/allure-maven-plugin
           retention-days: 1
 
       - name: Clean up
