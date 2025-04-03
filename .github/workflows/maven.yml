@@ -1,4 +1,4 @@
-name: Java CI with Maven
+name: Java CI with Maven and Allure
 
 on:
   push:
@@ -7,23 +7,19 @@ on:
     branches: [ "main" ]
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
 
     services:
-      db:
-        image: postgres:13
-        ports:
-          - "5432:5432"
+      postgres:
+        image: postgres:latest
         env:
-          POSTGRES_DB: simbirsoft
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
       - uses: actions/checkout@v3
@@ -32,39 +28,16 @@ jobs:
         uses: actions/setup-java@v3
         with:
           java-version: '17'
-          distribution: 'corretto'
-          cache: 'maven'
+          distribution: 'temurin'
+          cache: maven
 
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v2
+      - name: Start services with Docker Compose
+        run: docker-compose up --build -d
 
-      - name: Set up Docker Compose
-        run: |
-          sudo curl -L "https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          sudo chmod +x /usr/local/bin/docker-compose
+      - name: Wait for application to start
+        run: sleep 30
 
-      - name: Verify docker-compose file
-        run: |
-          ls -la
-          if [ -f "docker-compose.yaml" ]; then
-            echo "docker-compose.yaml found"
-            cat docker-compose.yaml
-          else
-            echo "Error: docker-compose.yaml not found!"
-            exit 1
-          fi
-
-      - name: Build and start application
-        run: |
-          docker-compose -f docker-compose.yaml build
-          docker-compose -f docker-compose.yaml up -d
-          sleep 20
-          curl --retry 5 --retry-delay 5 --retry-connrefused http://localhost:8080/actuator/health || echo "Health check failed but continuing..."
-
-      - name: Verify containers
-        run: docker ps -a
-
-      - name: Run tests
+      - name: Build and test with Maven
         run: mvn -B test
 
       - name: Generate Allure Report
@@ -72,13 +45,13 @@ jobs:
         run: |
           mvn allure:report
 
-      - name: Upload Allure Report
+      - name: Archive Allure Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: allure-report
           path: target/site/allure-maven-plugin
 
-      - name: Stop containers
+      - name: Stop services
         if: always()
-        run: docker-compose -f docker-compose.yaml down
+        run: docker-compose down
