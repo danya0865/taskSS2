@@ -1,4 +1,4 @@
-name: Java CI с Maven (Corretto 17)
+name: Java CI with Maven
 
 on:
   push:
@@ -7,37 +7,66 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+
+    services:
+      # Запускаем сервисы из docker-compose
+      app:
+        image: simbirsoft_sdet_project-app
+        ports:
+          - "8080:8080"
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/simbirsoft
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
+        options: >-
+          --health-cmd "curl -f http://localhost:8080/actuator/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      db:
+        image: postgres:13
+        ports:
+          - "5432:5432"
+        env:
+          POSTGRES_DB: simbirsoft
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v3
 
-      - name: Установка Amazon Corretto 17
+      - name: Set up JDK 17 (Amazon Corretto)
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'corretto'
           cache: 'maven'
 
-      - name: Запуск тестов
-        run: mvn -B clean test
+      - name: Build and start services
+        run: |
+          docker-compose up --build -d
+          sleep 30 # Даем время на запуск сервисов
+          curl --retry 5 --retry-delay 5 --retry-connrefused http://localhost:8080/actuator/health
 
-      - name: Генерация Allure отчета
+      - name: Run tests
+        run: mvn -B test
+
+      - name: Generate Allure Report
         if: always()
         run: |
           mvn allure:report
 
-      - name: Сохранение Allure отчета
+      - name: Upload Allure Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: allure-report
           path: target/site/allure-maven-plugin
-
-      - name: Сохранение результатов Allure
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-results
-          path: target/allure-results
