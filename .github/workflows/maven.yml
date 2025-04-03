@@ -1,4 +1,4 @@
-name: Java CI with Maven and Allure
+name: Java CI with Maven, Testcontainers and Allure
 
 on:
   push:
@@ -9,6 +9,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
 
     steps:
       - uses: actions/checkout@v4
@@ -20,8 +24,29 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Build Docker image
+        run: |
+          docker build -t simbirsoft-api .
+
+      - name: Start Testcontainers
+        run: |
+          docker run -d -p 8080:8080 --name api-server simbirsoft-api
+          echo "Waiting for API to start..."
+          while ! curl -s http://localhost:8080/health >/dev/null; do
+            sleep 5
+          done
+
       - name: Build and test with Maven
         run: mvn -B clean test
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: true
+          DOCKER_HOST: tcp://localhost:2375
+
+      - name: Stop containers
+        if: always()
+        run: |
+          docker stop api-server || true
+          docker rm api-server || true
 
       - name: Generate Allure Report
         if: always()
