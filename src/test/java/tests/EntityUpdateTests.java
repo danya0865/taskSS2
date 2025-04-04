@@ -1,78 +1,80 @@
 package tests;
 
-import dto.AdditionRequest;
-import dto.EntityRequest;
-import io.qameta.allure.Epic;
+import models.Addition;
+import models.Entity;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Story;
+import io.qameta.allure.restassured.AllureRestAssured;
 import io.restassured.http.ContentType;
-import io.restassured.response.Response;
 import org.testng.annotations.Test;
-
 import java.util.Arrays;
-
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 
-@Epic("API Tests")
-@Feature("Entity Management")
+@Feature("Управление сущностями")
 public class EntityUpdateTests extends BaseTest {
 
     @Test(description = "Запрос на обновление сущности и ее дополнений")
-    @Story("Update entity")
-
+    @Story("Обновление сущности")
     public void testUpdateEntity() {
-        String entityId = createTestEntity();
+        Entity originalEntity = Entity.builder()
+                .addition(Addition.builder()
+                        .additional_info("Original info")
+                        .additional_number(111)
+                        .build())
+                .important_numbers(Arrays.asList(1, 2, 3))
+                .title("Original title")
+                .verified(false)
+                .build();
 
-        Response getResponseBeforeUpdate = given()
-                .when()
-                .get("/get/" + entityId);
-
-        allureLogApiResponse("Created Entity", getResponseBeforeUpdate.getBody().asString());
-
-        AdditionRequest updatedAddition = new AdditionRequest("Updated info", 999);
-        EntityRequest updatedEntity = new EntityRequest(
-                updatedAddition,
-                Arrays.asList(49, 87, 15),
-                "Updated title",
-                true
-        );
-
-        Response updateResponse = given()
+        String entityId = given()
+                .filter(new AllureRestAssured())
                 .contentType(ContentType.JSON)
-                .body(updatedEntity)
-                .when()
-                .patch("/patch/" + entityId);
-
-        updateResponse.then()
-                .statusCode(204);
-
-        Response getResponseAfterUpdate = given()
-                .when()
-                .get("/get/" + entityId);
-
-        allureLogApiResponse("Updated Entity", getResponseAfterUpdate.getBody().asString());
-    }
-
-    private String createTestEntity() {
-        AdditionRequest addition = new AdditionRequest("Test info", 111);
-        EntityRequest entityRequest = new EntityRequest(
-                addition,
-                Arrays.asList(1, 2, 3),
-                "Test title",
-                false
-        );
-
-        return given()
-                .contentType(ContentType.JSON)
-                .body(entityRequest)
+                .body(originalEntity)
                 .when()
                 .post("/create")
                 .then()
+                .spec(textPlainSuccessResponseSpec)
                 .extract()
                 .asString();
-    }
 
-    private void allureLogApiResponse(String title, String responseBody) {
-        io.qameta.allure.Allure.addAttachment(title, "application/json", responseBody);
+        Entity updatedEntity = Entity.builder()
+                .addition(Addition.builder()
+                        .additional_info("Updated info")
+                        .additional_number(999)
+                        .build())
+                .important_numbers(Arrays.asList(4, 5, 6))
+                .title("Updated title")
+                .verified(true)
+                .build();
+
+        given()
+                .filter(new AllureRestAssured())
+                .contentType(ContentType.JSON)
+                .body(updatedEntity)
+                .when()
+                .patch("/patch/" + entityId)
+                .then()
+                .spec(noContentResponseSpec);
+
+        Entity responseEntity = given()
+                .filter(new AllureRestAssured())
+                .when()
+                .get("/get/" + entityId)
+                .then()
+                .spec(jsonSuccessResponseSpec)
+                .extract()
+                .as(Entity.class);
+
+        assertThat("Заголовок должен обновиться", responseEntity.getTitle(), equalTo(updatedEntity.getTitle()));
+        assertThat("Статус verified должен обновиться", responseEntity.isVerified(), equalTo(updatedEntity.isVerified()));
+        assertThat("Числа должны обновиться", responseEntity.getImportant_numbers(), equalTo(updatedEntity.getImportant_numbers()));
+
+        Addition responseAddition = responseEntity.getAddition();
+        assertThat("Дополнительная информация должна обновиться",
+                responseAddition.getAdditional_info(), equalTo(updatedEntity.getAddition().getAdditional_info()));
+        assertThat("Число должно обновиться",
+                responseAddition.getAdditional_number(), equalTo(updatedEntity.getAddition().getAdditional_number()));
     }
 }

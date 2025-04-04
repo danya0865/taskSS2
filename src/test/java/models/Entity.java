@@ -1,18 +1,19 @@
-package dto;
+package models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.util.List;
 
 @Data
 @NoArgsConstructor
-public class EntityResponse {
+@AllArgsConstructor
+@Builder
+public class Entity {
     @JsonProperty("addition")
-    private AdditionResponse addition;
-
-    @JsonProperty("id")
-    private int id;
+    private Addition addition;
 
     @JsonProperty("important_numbers")
     private List<Integer> important_numbers;
@@ -22,4 +23,7 @@ public class EntityResponse {
 
     @JsonProperty("verified")
     private boolean verified;
+
+    @JsonProperty("id")
+    private Integer id;
 }

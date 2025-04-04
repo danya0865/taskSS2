@@ -1,66 +1,77 @@
 package tests;
 
-import dto.AdditionRequest;
-import dto.EntityRequest;
-import io.qameta.allure.Epic;
+import models.Addition;
+import models.Entity;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Story;
-import io.qameta.allure.internal.shadowed.jackson.databind.ObjectMapper;
-import io.restassured.response.Response;
+import io.qameta.allure.restassured.AllureRestAssured;
 import org.testng.annotations.Test;
 import io.restassured.http.ContentType;
-
 import java.util.Arrays;
-
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.emptyString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 
-@Epic("API Tests")
-@Feature("Entity Management")
+@Feature("Управление сущностями")
 public class EntityCreationTests extends BaseTest {
 
     @Test(description = "Запрос на добавление новой сущности")
-    @Story("Create a new entity")
+    @Story("Создание новой сущности")
     public void testCreateEntity() {
-        AdditionRequest addition = new AdditionRequest("Дополнительные сведения", 123);
-        EntityRequest entityRequest = new EntityRequest(
-                addition,
-                Arrays.asList(42, 87, 15),
-                "Заголовок сущности",
-                true
-        );
+        Entity entityRequest = Entity.builder()
+                .addition(Addition.builder()
+                        .additional_info("Дополнительные сведения")
+                        .additional_number(123)
+                        .build())
+                .important_numbers(Arrays.asList(42, 87, 15))
+                .title("Заголовок сущности")
+                .verified(true)
+                .build();
 
-        allureLogApiResponse("Request Body", serializeToJson(entityRequest));
-
-        Response response = given()
+        String entityId = given()
+                .filter(new AllureRestAssured())
                 .contentType(ContentType.JSON)
                 .body(entityRequest)
                 .when()
-                .post("/create");
-
-        String entityId = response.then()
+                .post("/create")
+                .then()
+                .spec(textPlainSuccessResponseSpec)
                 .extract()
                 .asString();
 
-        Response getResponse = given()
+        assertThat("ID сущности не должен быть пустым", entityId, not(emptyString()));
+
+        Entity entityResponse = given()
+                .filter(new AllureRestAssured())
                 .when()
-                .get("/get/" + entityId);
+                .get("/get/" + entityId)
+                .then()
+                .spec(jsonSuccessResponseSpec)
+                .extract()
+                .as(Entity.class);
 
-        allureLogApiResponse("Full Entity Response", getResponse.getBody().asString());
+        assertThat("ID сущности должен соответствовать",
+                entityResponse.getId(), equalTo(Integer.parseInt(entityId)));
+        assertThat("Заголовок должен соответствовать",
+                entityResponse.getTitle(), equalTo(entityRequest.getTitle()));
+        assertThat("Статус verified должен соответствовать",
+                entityResponse.isVerified(), equalTo(entityRequest.isVerified()));
+        assertThat("Список важных чисел не должен быть пустым",
+                entityResponse.getImportant_numbers(), not(empty()));
+        assertThat("Числа должны соответствовать",
+                entityResponse.getImportant_numbers(), equalTo(entityRequest.getImportant_numbers()));
 
-        response.then()
-                .statusCode(200);
-    }
-
-    private void allureLogApiResponse(String title, String content) {
-        io.qameta.allure.Allure.addAttachment(title, "application/json", content);
-    }
-
-    private String serializeToJson(Object object) {
-        ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            return objectMapper.writeValueAsString(object);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to serialize object to JSON", e);
-        }
+        Addition responseAddition = entityResponse.getAddition();
+        assertThat("Дополнение не должно быть null", responseAddition, notNullValue());
+        assertThat("Дополнительная информация должна соответствовать",
+                responseAddition.getAdditional_info(), equalTo(entityRequest.getAddition().getAdditional_info()));
+        assertThat("Число должно соответствовать",
+                responseAddition.getAdditional_number(), equalTo(entityRequest.getAddition().getAdditional_number()));
+        assertThat("ID дополнения должен присутствовать",
+                responseAddition.getId(), notNullValue());
     }
 }
