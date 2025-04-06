@@ -12,7 +12,6 @@ public class BaseTest {
     protected static final String BASE_URL = "http://localhost:8080";
     protected static final String API_PATH = "/api";
 
-    protected ResponseSpecification successResponseSpec;
     protected ResponseSpecification notFoundResponseSpec;
     protected ResponseSpecification serverErrorResponseSpec;
     protected ResponseSpecification noContentResponseSpec;
@@ -30,11 +29,6 @@ public class BaseTest {
                 .build();
 
         jsonSuccessResponseSpec = new ResponseSpecBuilder()
-                .expectStatusCode(200)
-                .expectContentType(ContentType.JSON)
-                .build();
-
-        successResponseSpec = new ResponseSpecBuilder()
                 .expectStatusCode(200)
                 .expectContentType(ContentType.JSON)
                 .build();

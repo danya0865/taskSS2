@@ -9,11 +9,9 @@ import io.restassured.http.ContentType;
 import org.testng.annotations.Test;
 import java.util.Arrays;
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 
 @Feature("Управление сущностями")
-public class EntityUpdateTests extends BaseTest {
+public class EntityUpdateTests extends SoftAssertBaseTest {
 
     @Test(description = "Запрос на обновление сущности и ее дополнений")
     @Story("Обновление сущности")
@@ -67,14 +65,16 @@ public class EntityUpdateTests extends BaseTest {
                 .extract()
                 .as(Entity.class);
 
-        assertThat("Заголовок должен обновиться", responseEntity.getTitle(), equalTo(updatedEntity.getTitle()));
-        assertThat("Статус verified должен обновиться", responseEntity.isVerified(), equalTo(updatedEntity.isVerified()));
-        assertThat("Числа должны обновиться", responseEntity.getImportant_numbers(), equalTo(updatedEntity.getImportant_numbers()));
+        softAssert.assertEquals(responseEntity.getTitle(), updatedEntity.getTitle(), "Заголовок должен обновиться");
+        softAssert.assertEquals(responseEntity.isVerified(), updatedEntity.isVerified(), "Статус verified должен обновиться");
+        softAssert.assertEquals(responseEntity.getImportant_numbers(), updatedEntity.getImportant_numbers(), "Числа должны обновиться");
 
         Addition responseAddition = responseEntity.getAddition();
-        assertThat("Дополнительная информация должна обновиться",
-                responseAddition.getAdditional_info(), equalTo(updatedEntity.getAddition().getAdditional_info()));
-        assertThat("Число должно обновиться",
-                responseAddition.getAdditional_number(), equalTo(updatedEntity.getAddition().getAdditional_number()));
+        softAssert.assertEquals(responseAddition.getAdditional_info(), updatedEntity.getAddition().getAdditional_info(),
+                "Дополнительная информация должна обновиться");
+        softAssert.assertEquals(responseAddition.getAdditional_number(), updatedEntity.getAddition().getAdditional_number(),
+                "Число должно обновиться");
+
+        assertAll();
     }
 }

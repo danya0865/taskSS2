@@ -8,12 +8,9 @@ import io.qameta.allure.restassured.AllureRestAssured;
 import org.testng.annotations.Test;
 import java.util.Arrays;
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
 
 @Feature("Управление сущностями")
-public class EntityRetrievalTests extends BaseTest {
+public class EntityRetrievalTests extends SoftAssertBaseTest {
 
     @Test(description = "Запрос на получение одной сущности")
     @Story("Получение сущности")
@@ -48,22 +45,20 @@ public class EntityRetrievalTests extends BaseTest {
                 .extract()
                 .as(Entity.class);
 
-        assertThat("ID сущности должен совпадать",
-                entityResponse.getId(), equalTo(Integer.parseInt(entityId)));
-        assertThat("Заголовок должен совпадать",
-                entityResponse.getTitle(), equalTo(entityRequest.getTitle()));
-        assertThat("Статус verified должен совпадать",
-                entityResponse.isVerified(), equalTo(entityRequest.isVerified()));
-        assertThat("Числа должны совпадать",
-                entityResponse.getImportant_numbers(), equalTo(entityRequest.getImportant_numbers()));
+        // Исправленные проверки с явным приведением типов
+        softAssert.assertEquals(entityResponse.getId().intValue(), Integer.parseInt(entityId), "ID сущности должен совпадать");
+        softAssert.assertEquals(entityResponse.getTitle(), entityRequest.getTitle(), "Заголовок должен совпадать");
+        softAssert.assertEquals(entityResponse.isVerified(), entityRequest.isVerified(), "Статус verified должен совпадать");
+        softAssert.assertEquals(entityResponse.getImportant_numbers(), entityRequest.getImportant_numbers(), "Числа должны совпадать");
 
         Addition responseAddition = entityResponse.getAddition();
-        assertThat("Дополнение не должно быть null", responseAddition, notNullValue());
-        assertThat("Дополнительная информация должна совпадать",
-                responseAddition.getAdditional_info(), equalTo(entityRequest.getAddition().getAdditional_info()));
-        assertThat("Дополнительное число должно совпадать",
-                responseAddition.getAdditional_number(), equalTo(entityRequest.getAddition().getAdditional_number()));
-        assertThat("ID дополнения должен присутствовать",
-                responseAddition.getId(), notNullValue());
+        softAssert.assertNotNull(responseAddition, "Дополнение не должно быть null");
+        softAssert.assertEquals(responseAddition.getAdditional_info(), entityRequest.getAddition().getAdditional_info(),
+                "Дополнительная информация должна совпадать");
+        softAssert.assertEquals(responseAddition.getAdditional_number(), entityRequest.getAddition().getAdditional_number(),
+                "Дополнительное число должно совпадать");
+        softAssert.assertNotNull(responseAddition.getId(), "ID дополнения должен присутствовать");
+
+        assertAll();
     }
 }

@@ -8,6 +8,8 @@ allure-results/
 
 .gitignore
 
+.github/
+
 .idea/
 *.iml
 

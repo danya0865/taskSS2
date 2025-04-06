@@ -9,15 +9,9 @@ import org.testng.annotations.Test;
 import io.restassured.http.ContentType;
 import java.util.Arrays;
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.emptyString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
 
 @Feature("Управление сущностями")
-public class EntityCreationTests extends BaseTest {
+public class EntityCreationTests extends SoftAssertBaseTest {
 
     @Test(description = "Запрос на добавление новой сущности")
     @Story("Создание новой сущности")
@@ -43,7 +37,7 @@ public class EntityCreationTests extends BaseTest {
                 .extract()
                 .asString();
 
-        assertThat("ID сущности не должен быть пустым", entityId, not(emptyString()));
+        softAssert.assertTrue(entityId != null && !entityId.isEmpty(), "ID сущности не должен быть пустым");
 
         Entity entityResponse = given()
                 .filter(new AllureRestAssured())
@@ -54,24 +48,19 @@ public class EntityCreationTests extends BaseTest {
                 .extract()
                 .as(Entity.class);
 
-        assertThat("ID сущности должен соответствовать",
-                entityResponse.getId(), equalTo(Integer.parseInt(entityId)));
-        assertThat("Заголовок должен соответствовать",
-                entityResponse.getTitle(), equalTo(entityRequest.getTitle()));
-        assertThat("Статус verified должен соответствовать",
-                entityResponse.isVerified(), equalTo(entityRequest.isVerified()));
-        assertThat("Список важных чисел не должен быть пустым",
-                entityResponse.getImportant_numbers(), not(empty()));
-        assertThat("Числа должны соответствовать",
-                entityResponse.getImportant_numbers(), equalTo(entityRequest.getImportant_numbers()));
+        softAssert.assertEquals(entityResponse.getId().intValue(), Integer.parseInt(entityId), "ID сущности должен соответствовать");
+        softAssert.assertEquals(entityResponse.getTitle(), entityRequest.getTitle(), "Заголовок должен соответствовать");
+        softAssert.assertEquals(entityResponse.isVerified(), entityRequest.isVerified(), "Статус verified должен соответствовать");
+        softAssert.assertEquals(entityResponse.getImportant_numbers(), entityRequest.getImportant_numbers(), "Числа должны соответствовать");
 
         Addition responseAddition = entityResponse.getAddition();
-        assertThat("Дополнение не должно быть null", responseAddition, notNullValue());
-        assertThat("Дополнительная информация должна соответствовать",
-                responseAddition.getAdditional_info(), equalTo(entityRequest.getAddition().getAdditional_info()));
-        assertThat("Число должно соответствовать",
-                responseAddition.getAdditional_number(), equalTo(entityRequest.getAddition().getAdditional_number()));
-        assertThat("ID дополнения должен присутствовать",
-                responseAddition.getId(), notNullValue());
+        softAssert.assertNotNull(responseAddition, "Дополнение не должно быть null");
+        softAssert.assertEquals(responseAddition.getAdditional_info(), entityRequest.getAddition().getAdditional_info(),
+                "Дополнительная информация должна соответствовать");
+        softAssert.assertEquals(responseAddition.getAdditional_number(), entityRequest.getAddition().getAdditional_number(),
+                "Число должно соответствовать");
+        softAssert.assertNotNull(responseAddition.getId(), "ID дополнения должен присутствовать");
+
+        assertAll();
     }
 }
