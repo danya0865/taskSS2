@@ -6,6 +6,8 @@
 allure-results/
 .allure/
 
+.gitignore
+
 .github/
 
 .idea/
