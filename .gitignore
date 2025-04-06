@@ -1,18 +1,30 @@
+*.log
+*.tmp
+*.swp
+*.bak
+
+allure-results/
+.allure/
+
+.gitignore
+
+.github/
+
+.idea/
+*.iml
+
 target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### IntelliJ IDEA ###
 .idea/modules.xml
 .idea/jarRepositories.xml
 .idea/compiler.xml
 .idea/libraries/
 *.iws
-*.iml
 *.ipr
 
-### Eclipse ###
 .apt_generated
 .classpath
 .factorypath
@@ -21,7 +33,6 @@ target/
 .springBeans
 .sts4-cache
 
-### NetBeans ###
 /nbproject/private/
 /nbbuild/
 /dist/
@@ -31,8 +42,9 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### VS Code ###
 .vscode/
 
-### Mac OS ###
 .DS_Store
+
+pom.xml.versionsBackup
+dependency-reduced-pom.xml
